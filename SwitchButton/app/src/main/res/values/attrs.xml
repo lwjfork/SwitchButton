@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="SwitchButton">
+        <attr name="mask_color" format="color" />
+        <attr name="open_color" format="color" />
+        <attr name="close_color" format="color" />
+        <attr name="checked" format="boolean" />
+    </declare-styleable>
+
+</resources>

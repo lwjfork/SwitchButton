@@ -3,6 +3,7 @@ package com.lwj.fork.view;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -11,6 +12,8 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
+
+import com.lwj.fork.R;
 
 /**
  * Created by lwj on 16/4/12.
@@ -28,9 +31,10 @@ public class SwitchButton extends View {
     //打开时默认背景颜色
     public static final int OPEN_PAINT_COLOR = 0xFF33A63A;
     //打开时背景颜色
-    private int openColor = OPEN_PAINT_COLOR;
+    private int openColor;
     //关闭时背景颜色
-    private int closeColor = CLOSE_PAINT_COLOR;
+    private int closeColor;
+    private int maskColor;
 
     // 滑块半径
     private int mRadius;
@@ -56,12 +60,9 @@ public class SwitchButton extends View {
      * 滑块的最大偏移距离
      */
     private float mMaxMaskOffset = 0;
-
-    boolean mIsChecked = false;
-
-
+    boolean mIsChecked;
     // 是否滑动
-    private boolean isScroll = false;
+    private boolean isMove = false;
     // 手指点击距左端
     private float clickLeftOffset = 0;
     // 滑块绘制矩形的宽度
@@ -79,6 +80,16 @@ public class SwitchButton extends View {
 
     public SwitchButton(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        init(attrs);
+    }
+
+    private void init(AttributeSet attrs) {
+        TypedArray array = getContext().obtainStyledAttributes(attrs, R.styleable.SwitchButton);
+        openColor = array.getColor(R.styleable.SwitchButton_open_color, OPEN_PAINT_COLOR);
+        closeColor = array.getColor(R.styleable.SwitchButton_close_color, CLOSE_PAINT_COLOR);
+        maskColor = array.getColor(R.styleable.SwitchButton_mask_color, Color.WHITE);
+        mIsChecked = array.getBoolean(R.styleable.SwitchButton_checked, false);
+        array.recycle();
         initPaint();
     }
 
@@ -96,6 +107,11 @@ public class SwitchButton extends View {
         leftOffset = intervalWidth;
         mMaxMaskOffset = getMeasuredWidth() - intervalWidth - mRadius * 2;
         mMinMaskOffset = intervalWidth;
+        if (mIsChecked) {
+            leftOffset = mMaxMaskOffset;
+        } else {
+            mMaxMaskOffset = mMinMaskOffset;
+        }
     }
 
     private int getMeasuredSize(int measureSpecValue, int defaultValue) {
@@ -109,11 +125,16 @@ public class SwitchButton extends View {
         }
         return defaultSize;
     }
+
     public void initPaint() {
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         //  画笔样式
         mPaint.setStrokeCap(Paint.Cap.ROUND);
-        mPaint.setColor(CLOSE_PAINT_COLOR);
+        if (mIsChecked) {
+            mPaint.setColor(openColor);
+        } else {
+            mPaint.setColor(closeColor);
+        }
         // 更加清晰和平滑
         mPaint.setDither(true);
 
@@ -122,7 +143,7 @@ public class SwitchButton extends View {
         // 接合处 为 圆形
         mMaskPaint.setStrokeJoin(Paint.Join.ROUND);
         mPaint.setDither(true);
-        mMaskPaint.setColor(Color.WHITE);
+        mMaskPaint.setColor(maskColor);
     }
 
     @Override
@@ -150,7 +171,6 @@ public class SwitchButton extends View {
     }
 
 
-
     public void toggle() {
         boolean isSelect = isSelected();
         updateState(!isSelect);
@@ -164,8 +184,8 @@ public class SwitchButton extends View {
                 preX = event.getRawX();
 
                 clickLeftOffset = event.getX();
-                isScroll = false;
-                //把间隙减掉，保证从最左端算起(0)
+                isMove = false;
+                //记录原先的 leftOffset
                 oldleftOffset = mMaskRectF.left;
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -175,33 +195,30 @@ public class SwitchButton extends View {
                 float dx = culX - preX;
                 //当手指滑动5个像素时，我们才认为是真正滑动了
                 if (Math.abs(dx) > 5) {
-                    isScroll = true;
+                    isMove = true;
                     //当前
                     leftOffset = (dx + oldleftOffset);
                     setVaildOffset();
                     float percent = leftOffset * 1.0f / mMaxMaskOffset;
-                    changeBgColor(percent, CLOSE_PAINT_COLOR, OPEN_PAINT_COLOR);
+                    changeBgColor(percent, closeColor, openColor);
                     invalidate();
                 }
                 break;
             case MotionEvent.ACTION_UP:
                 //松开手指...
                 boolean isShouldCheck = false;
-                if (isScroll) {//滑动
+                if (isMove) {//滑动
                     //计算滑块中间位置 是否超过控件的中心位置
                     int pointCenterX = (int) mMaskRectF.centerX();
                     isShouldCheck = pointCenterX >= bgRectf.centerX();
                 } else {//点击
                     isShouldCheck = clickLeftOffset >= bgRectf.centerX();
                 }
-                //执行平移动画
                 updateState(isShouldCheck);
                 exitAnim();
-                isScroll = false;
+                isMove = false;
                 break;
         }
-
-
         return true;
     }
 
@@ -276,6 +293,7 @@ public class SwitchButton extends View {
     private void changeBgColor(float fraction, int startColor, int endColor) {
         mPaint.setColor((int) argbEvaluator.evaluate(fraction, startColor, endColor));
     }
+
     //此方法是将dp值转化为px值，方便适配
     private int dip2px(float dpValue) {
         final float scale = getContext().getResources().getDisplayMetrics().density;
