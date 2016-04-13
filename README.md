@@ -1,3 +1,5 @@
 # SwitchButton
-仿iOS SwitchButton
-添加
+##自定义View
+  SwitchButton
+##添加自定义属性
+## 添加设置drawable
