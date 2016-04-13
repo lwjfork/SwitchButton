@@ -7,6 +7,7 @@
     >
 
     <com.lwj.fork.view.SwitchButton
+        android:id="@+id/sb"
         app:close_color="@color/colorPrimary"
         app:open_color="@color/colorAccent"
         app:mask_color="@android:color/white"

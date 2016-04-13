@@ -63,7 +63,7 @@ public class SwitchButton extends View {
     boolean mIsChecked;
     // 是否滑动
     private boolean isMove = false;
-    // 手指点击距左端
+    // 手指点击
     private float clickLeftOffset = 0;
     // 滑块绘制矩形的宽度
     float mMaskRectFWidth;
@@ -91,6 +91,7 @@ public class SwitchButton extends View {
         mIsChecked = array.getBoolean(R.styleable.SwitchButton_checked, false);
         array.recycle();
         initPaint();
+        setSelected(mIsChecked);
     }
 
     @Override
@@ -234,37 +235,33 @@ public class SwitchButton extends View {
         float start = mMaskRectF.left;
         float end = mIsChecked ? mMaxMaskOffset : mMinMaskOffset;
         ValueAnimator valueAnimator = ValueAnimator.ofFloat(start, end);
-        //400毫秒
-        valueAnimator.setDuration(400);
-        //加速再减速
+        valueAnimator.setDuration(300);
+        //加速－减速
         valueAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
-        //开启动画
         valueAnimator.start();
 
-        //获取松开手指时，背景颜色
+        //开始颜色
         final int startColor = mPaint.getColor();
 
-        //增加动画执行监听 这里就可以每次给你返回执行进度和执行值
+        //动画执行监听 设置颜色改变和偏移量
         valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 //获取偏移量
                 float offset = (Float) animation.getAnimatedValue();
-                //当前动画执行进度，这个值是用来以后改变背景颜色的~
+                //当前动画执行进度，改变背景颜色的~
                 float fraction = animation.getAnimatedFraction();
 
                 if (mIsChecked)
-                    //open状态，从当前颜色渐变到open时的颜色
+                    //选中－－
                     changeBgColor(fraction, startColor, openColor);
                 else
-                    //close状态，从当前颜色渐变到close时的颜色
+                    //未选中
                     changeBgColor(fraction, startColor, closeColor);
-                //赋值
+                //更新 leftOffset
                 leftOffset = offset;
-
                 invalidate();
             }
-
         });
     }
 
@@ -278,7 +275,7 @@ public class SwitchButton extends View {
         this.onCheckedChangedListener = onCheckedChangedListener;
     }
 
-    //变更当前状态
+    //更新选中状态
     private void updateState(boolean checked) {
         setSelected(checked);
         this.mIsChecked = checked;
@@ -287,16 +284,19 @@ public class SwitchButton extends View {
             onCheckedChangedListener.onCheckedChange(this.mIsChecked);
     }
 
-    //颜色插值器
+    //颜色变化
     ArgbEvaluator argbEvaluator = new ArgbEvaluator();
 
     private void changeBgColor(float fraction, int startColor, int endColor) {
         mPaint.setColor((int) argbEvaluator.evaluate(fraction, startColor, endColor));
     }
 
-    //此方法是将dp值转化为px值，方便适配
+    //dp值转px值
     private int dip2px(float dpValue) {
         final float scale = getContext().getResources().getDisplayMetrics().density;
         return (int) (dpValue * scale + 0.5f);
+    }
+    public boolean isChecked(){
+        return  isSelected();
     }
 }
